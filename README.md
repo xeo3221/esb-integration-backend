@@ -16,7 +16,7 @@ Enterprise Service Bus (ESB) do integracji systemów e-commerce:
 - [x] Stwórz backend (Nest.js + TypeScript)
 - [x] Skonfiguruj Drizzle ORM i połączenie z Neon (PostgreSQL)
 - [x] Skonfiguruj kolejki BullMQ/Redis do obsługi przepływów
-- [ ] Zaimplementuj adaptery do wszystkich systemów (magazyn, fakturowanie, CRM, marketplace)
+- [x] Zaimplementuj adaptery do wszystkich systemów (magazyn, fakturowanie, CRM, marketplace)
 - [ ] Dodaj walidację, logowanie i testy
 - [ ] Wdróż aplikację na Railway
 
@@ -58,11 +58,22 @@ npm run db:studio
 
 ## Endpointy
 
+### Podstawowe
+
 - `GET /` - Informacje o API
 - `GET /health` - Status zdrowia aplikacji
 - `GET /health/database` - Status połączenia z bazą danych
+
+### Kolejki ESB
+
 - `GET /queues/stats` - Statystyki kolejek ESB
 - `POST /test/warehouse-sync` - Test kolejki magazynu
+
+### Adaptery systemowe
+
+- `GET /adapters/health` - Health check wszystkich systemów ESB
+- `GET /adapters/info` - Informacje o wszystkich systemach
+- `GET /adapters/test-operations` - Test operacji każdego adaptera
 
 ## Konfiguracja
 
@@ -77,3 +88,20 @@ Aplikacja może działać w dwóch trybach:
 
 - **Z Redis**: Pełne kolejki BullMQ z persystencją
 - **Tryb demo**: Bez Redis, operacje logowane w konsoli (dla development)
+
+## Adaptery systemowe
+
+ESB integruje 4 systemy poprzez adaptery:
+
+1. **WarehouseAdapter** - System magazynowy (symuluje CSV/FTP/baza danych)
+2. **InvoiceAdapter** - System fakturowania (REST API)
+3. **CrmAdapter** - System CRM (REST API)
+4. **MarketplaceAdapter** - Platforma marketplace (REST API)
+
+Każdy adapter wspiera:
+
+- Test połączenia
+- Informacje o systemie
+- Retry logic z exponential backoff
+- Timeout handling
+- Comprehensive logging

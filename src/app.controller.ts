@@ -1,12 +1,14 @@
 import { Controller, Get, Post, Body } from "@nestjs/common";
 import { AppService } from "./app.service";
 import { QueueService } from "./queues/queue.service";
+import { AdaptersTestService } from "./adapters/adapters-test.service";
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly queueService: QueueService
+    private readonly queueService: QueueService,
+    private readonly adaptersTestService: AdaptersTestService
   ) {}
 
   @Get()
@@ -47,5 +49,21 @@ export class AppController {
 
     const job = await this.queueService.addWarehouseSync(jobData);
     return { success: true, jobId: job.id };
+  }
+
+  // Endpointy testowania adapterów
+  @Get("/adapters/health")
+  async getAdaptersHealth() {
+    return this.adaptersTestService.testAllSystems();
+  }
+
+  @Get("/adapters/info")
+  async getAdaptersInfo() {
+    return this.adaptersTestService.getSystemsInfo();
+  }
+
+  @Get("/adapters/test-operations")
+  async testAdapterOperations() {
+    return this.adaptersTestService.testAdapterOperations();
   }
 }
