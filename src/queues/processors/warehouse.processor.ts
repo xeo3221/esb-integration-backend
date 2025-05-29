@@ -1,3 +1,27 @@
+/*
+ * PROCESOR KOLEJKI MAGAZYNOWEJ - ESB Integration
+ *
+ * Problem do rozwiązania:
+ * Zadania z kolejki magazynowej muszą być przetworzone w tle.
+ * Operacje mogą trwać długo (aktualizacja CSV, połączenie z FTP, zapytania SQL).
+ *
+ * Jak to rozwiązujemy:
+ * Worker pobiera zadania z kolejki Redis i przetwarza je jedno po drugim.
+ * Przy błędach automatycznie ponawia (retry) z opóźnieniem.
+ *
+ * Dlaczego osobny procesor:
+ * - Izolacja - błąd w magazynie nie wpłynie na fakturowanie
+ * - Skalowanie - można uruchomić więcej workerów
+ * - Monitoring - osobne logi dla każdego typu operacji
+ *
+ * W pełnej implementacji:
+ * - Circuit breaker dla połączeń z magazynem
+ * - Batch processing dla dużych aktualizacji
+ * - Error handling z custom retry logic
+ * - Monitoring i alerting
+ * - Data transformation i walidacja
+ */
+
 import { Process, Processor } from "@nestjs/bull";
 import { Logger } from "@nestjs/common";
 import { Job } from "bull";
@@ -15,37 +39,33 @@ export class WarehouseProcessor {
 
   @Process("stock_update")
   async handleStockUpdate(job: Job<WarehouseSyncJobData>) {
-    this.logger.log(
-      `Processing stock update for product: ${job.data.productId}`
-    );
+    this.logger.log(`Przetwarzam aktualizację magazynu: ${job.data.productId}`);
 
     try {
-      // W rzeczywistej implementacji:
-      // - Połączenie z systemem magazynowym (FTP/CSV/baza danych)
-      // - Walidacja danych
-      // - Aktualizacja stanu magazynu
-      // - Powiadomienie innych systemów o zmianach
+      // W prawdziwej implementacji:
+      // - Połączenie z systemem magazynowym (FTP/CSV/baza)
+      // - Walidacja danych produktu
+      // - Aktualizacja stanu w magazynie
+      // - Powiadomienie innych systemów o zmianie
 
       this.logger.log(
-        `Stock update completed for product: ${job.data.productId}`
+        `Aktualizacja magazynu zakończona: ${job.data.productId}`
       );
       return { success: true, productId: job.data.productId };
     } catch (error) {
       this.logger.error(
-        `Stock update failed for product: ${job.data.productId}`,
+        `Błąd aktualizacji magazynu: ${job.data.productId}`,
         error
       );
-      throw error; // BullMQ automatycznie retry
+      throw error; // BullMQ automatycznie ponowi zadanie
     }
   }
 
   @Process("inventory_check")
   async handleInventoryCheck(job: Job<WarehouseSyncJobData>) {
-    this.logger.log(
-      `Processing inventory check for product: ${job.data.productId}`
-    );
+    this.logger.log(`Sprawdzam stan magazynu: ${job.data.productId}`);
 
-    // Symulacja sprawdzenia stanu magazynu
+    // Symulacja sprawdzenia stanu (w rzeczywistości zapytanie do bazy/CSV)
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return {
@@ -55,12 +75,3 @@ export class WarehouseProcessor {
     };
   }
 }
-
-/**
- * W pełnej implementacji:
- * - Circuit breaker dla połączeń z magazynem
- * - Batch processing dla dużych aktualizacji
- * - Error handling z custom retry logic
- * - Monitoring i alerting
- * - Data transformation i walidacja
- */

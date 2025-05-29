@@ -1,3 +1,19 @@
+/*
+ * KONFIGURACJA REDIS - Kolejki ESB
+ *
+ * Problem: ESB potrzebuje kolejek do przetwarzania w tle
+ * Rozwiązanie: Redis + BullMQ dla zadań asynchronicznych
+ *
+ * Tryb demo: Aplikacja działa bez Redis (tylko logi)
+ * Produkcja: Redis wymagany dla kolejek
+ *
+ * W pełnej implementacji:
+ * - Dodanie monitoring Redis
+ * - Konfiguracja cluster Redis (dla produkcji)
+ * - Retry logic dla połączeń
+ * - Graceful shutdown
+ */
+
 import { BullRootModuleOptions } from "@nestjs/bull";
 
 // Sprawdzenie czy Redis jest dostępny
@@ -28,23 +44,3 @@ export const redisConfig: BullRootModuleOptions = {
     },
   },
 };
-
-/**
- * Konfiguracja opcjonalna dla środowiska deweloperskiego
- * - Aplikacja działa bez Redis z ostrzeżeniem
- * - W produkcji Redis jest wymagany
- *
- * Opcje deploymentu Redis:
- * 1. Lokalny Redis: redis://localhost:6379
- * 2. Redis Cloud (darmowy): https://redis.com/try-free/
- * 3. Upstash Redis: https://upstash.com/
- * 4. Railway Redis addon
- */
-
-/**
- * W pełnej implementacji:
- * - Dodanie monitoring Redis
- * - Konfiguracja cluster Redis (dla produkcji)
- * - Retry logic dla połączeń
- * - Graceful shutdown
- */

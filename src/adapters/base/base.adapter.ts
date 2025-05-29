@@ -1,3 +1,17 @@
+/*
+ * BAZOWA KLASA ADAPTERA ESB
+ *
+ * Problem: Każdy adapter (magazyn, faktury, CRM, marketplace) potrzebuje retry logic,
+ * timeoutów, logowania i wspólnych interfejsów.
+ *
+ * Rozwiązanie: Bazowa klasa z executeWithRetry() - automatyczne ponowienia z exponential backoff,
+ * standardowe response format z metrykami.
+ *
+ * Dlaczego: DRY principle, spójność wszystkich adapterów, łatwość debugowania.
+ *
+ * W pełnej implementacji: circuit breaker, rate limiting, caching, health monitoring.
+ */
+
 import { Logger } from "@nestjs/common";
 
 export interface AdapterConfig {
@@ -43,37 +57,33 @@ export abstract class BaseAdapter {
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
       try {
         this.logger.log(
-          `${context} - Attempt ${attempt}/${this.config.retryAttempts}`
+          `${context} - próba ${attempt}/${this.config.retryAttempts}`
         );
 
         const data = await Promise.race([
           operation(),
           this.createTimeoutPromise<T>(),
         ]);
-
         const executionTime = Date.now() - startTime;
-        this.logger.log(`${context} - Success in ${executionTime}ms`);
 
-        return {
-          success: true,
-          data,
-          timestamp: new Date(),
-          executionTime,
-        };
+        this.logger.log(`${context} - sukces w ${executionTime}ms`);
+        return { success: true, data, timestamp: new Date(), executionTime };
       } catch (error) {
         lastError = error as Error;
         this.logger.warn(
-          `${context} - Attempt ${attempt} failed: ${error.message}`
+          `${context} - próba ${attempt} nieudana: ${error.message}`
         );
 
         if (attempt < this.config.retryAttempts) {
-          await this.delay(1000 * attempt); // Exponential backoff
+          await this.delay(1000 * attempt); // exponential backoff
         }
       }
     }
 
     const executionTime = Date.now() - startTime;
-    this.logger.error(`${context} - All attempts failed: ${lastError.message}`);
+    this.logger.error(
+      `${context} - wszystkie próby nieudane: ${lastError.message}`
+    );
 
     return {
       success: false,
@@ -85,9 +95,10 @@ export abstract class BaseAdapter {
 
   private createTimeoutPromise<T>(): Promise<T> {
     return new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Operation timeout after ${this.config.timeout}ms`));
-      }, this.config.timeout);
+      setTimeout(
+        () => reject(new Error(`Timeout po ${this.config.timeout}ms`)),
+        this.config.timeout
+      );
     });
   }
 
@@ -95,16 +106,7 @@ export abstract class BaseAdapter {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  // Metody abstrakcyjne do implementacji przez adaptery
+  // Metody abstrakcyjne - każdy adapter musi je zaimplementować
   abstract testConnection(): Promise<AdapterResponse<boolean>>;
   abstract getSystemInfo(): Promise<AdapterResponse<any>>;
 }
-
-/**
- * W pełnej implementacji:
- * - Circuit breaker pattern
- * - Rate limiting
- * - Caching mechanizmy
- * - Health monitoring
- * - Metrics collection
- */

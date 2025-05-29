@@ -1,3 +1,28 @@
+/*
+ * SERWIS KOLEJEK ESB
+ *
+ * Problem do rozwiązania:
+ * ESB musi przetwarzać operacje asynchronicznie - nie można blokować API.
+ * Operacje jak "wyślij fakturę" czy "zaktualizuj magazyn" mogą trwać długo.
+ *
+ * Jak to rozwiązujemy:
+ * Kolejki Redis (BullMQ) przetwarzają zadania w tle.
+ * API dodaje zadanie → kolejka przetwarza → wynik w bazie.
+ *
+ * Dlaczego kolejki:
+ * - API odpowiada natychmiast (nie czeka 30 sekund na faktury)
+ * - Retry automatyczny przy błędach
+ * - Priorytetyzacja (faktury ważniejsze niż logi)
+ * - Skalowanie - można dodać więcej workerów
+ *
+ * W pełnej implementacji:
+ * - Batch operations dla wielu zadań jednocześnie
+ * - Scheduler dla zadań cyklicznych
+ * - Retry strategies per queue type
+ * - Dead letter queue handling
+ * - Custom job prioritization algorithms
+ */
+
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bull";
 import { Queue } from "bull";
@@ -11,168 +36,95 @@ export class QueueService {
   private redisAvailable = false;
 
   constructor(
-    @InjectQueue(QUEUE_NAMES.WAREHOUSE_SYNC)
-    private warehouseQueue: Queue,
-
-    @InjectQueue(QUEUE_NAMES.INVOICE_PROCESSING)
-    private invoiceQueue: Queue,
-
-    @InjectQueue(QUEUE_NAMES.CRM_UPDATES)
-    private crmQueue: Queue,
-
-    @InjectQueue(QUEUE_NAMES.MARKETPLACE_SYNC)
-    private marketplaceQueue: Queue,
-
-    @InjectQueue(QUEUE_NAMES.INTEGRATION_LOG)
-    private integrationLogQueue: Queue
+    @InjectQueue(QUEUE_NAMES.WAREHOUSE_SYNC) private warehouseQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.INVOICE_PROCESSING) private invoiceQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.CRM_UPDATES) private crmQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.MARKETPLACE_SYNC) private marketplaceQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.INTEGRATION_LOG) private integrationLogQueue: Queue
   ) {
     this.checkRedisConnection();
   }
 
   private async checkRedisConnection() {
     if (!isRedisConfigured()) {
-      this.logger.warn(
-        "Redis not configured. Queue operations will be logged only."
-      );
-      this.logger.warn("To enable queues, add REDIS_HOST to your .env file");
+      this.logger.warn("Redis brak - kolejki w trybie demo (tylko logi)");
       return;
     }
 
     try {
-      // Sprawdzenie połączenia z Redis
       await this.warehouseQueue.client.ping();
       this.redisAvailable = true;
-      this.logger.log("Redis connection established successfully");
+      this.logger.log("Redis połączony - kolejki działają");
     } catch (error) {
-      this.logger.warn(
-        "Redis connection failed. Queue operations will be logged only."
-      );
-      this.logger.warn("Error: " + error.message);
+      this.logger.warn("Redis nie działa - tryb demo (tylko logi)");
     }
   }
 
-  // Metody dla kolejki magazynu
+  // Ogólna metoda do dodawania zadań - unika powtarzania kodu
+  private async addJob(
+    queue: Queue,
+    jobType: string,
+    data: any,
+    priority: number = 5
+  ) {
+    this.logger.log(`Dodaję zadanie: ${jobType}`);
+
+    if (!this.redisAvailable) {
+      this.logger.warn("Redis brak - zadanie tylko zalogowane (demo)");
+      return { id: "demo-" + Date.now(), demo: true };
+    }
+
+    try {
+      return await queue.add(jobType, data, { priority });
+    } catch (error) {
+      this.logger.error(`Błąd dodawania zadania ${jobType}: ${error.message}`);
+      return { id: "failed-" + Date.now(), error: true };
+    }
+  }
+
+  // GŁÓWNE FUNKCJE: Dodawanie zadań do kolejek
   async addWarehouseSync(data: WarehouseSyncJobData) {
-    this.logger.log(`Adding warehouse sync job for product: ${data.productId}`);
-
-    if (!this.redisAvailable) {
-      this.logger.warn("Redis unavailable - job logged only (demo mode)");
-      return { id: "demo-" + Date.now(), demo: true };
-    }
-
-    try {
-      return await this.warehouseQueue.add(data.action, data, {
-        priority: data.action === "stock_alert" ? 10 : 5, // alert ma wyższy priorytet
-        delay: 0,
-      });
-    } catch (error) {
-      this.logger.error("Failed to add warehouse sync job:", error.message);
-      return { id: "failed-" + Date.now(), error: true };
-    }
+    const priority = data.action === "stock_alert" ? 10 : 7; // alerty mają wyższy priorytet
+    return this.addJob(this.warehouseQueue, data.action, data, priority);
   }
 
-  // Metody dla kolejki fakturowania
-  async addInvoiceProcessing(invoiceData: any) {
-    this.logger.log(`Adding invoice processing job`);
-
-    if (!this.redisAvailable) {
-      this.logger.warn("Redis unavailable - job logged only (demo mode)");
-      return { id: "demo-" + Date.now(), demo: true };
-    }
-
-    try {
-      return await this.invoiceQueue.add("process_invoice", invoiceData, {
-        priority: 8, // faktury mają wysoki priorytet
-      });
-    } catch (error) {
-      this.logger.error("Failed to add invoice processing job:", error.message);
-      return { id: "failed-" + Date.now(), error: true };
-    }
+  async addInvoiceProcessing(data: any) {
+    return this.addJob(this.invoiceQueue, "process_invoice", data, 9); // faktury wysokй priorytet
   }
 
-  // Metody dla kolejki CRM
-  async addCrmUpdate(crmData: any) {
-    this.logger.log(`Adding CRM update job`);
-
-    if (!this.redisAvailable) {
-      this.logger.warn("Redis unavailable - job logged only (demo mode)");
-      return { id: "demo-" + Date.now(), demo: true };
-    }
-
-    try {
-      return await this.crmQueue.add("update_customer", crmData, {
-        priority: 3, // CRM ma niższy priorytet
-      });
-    } catch (error) {
-      this.logger.error("Failed to add CRM update job:", error.message);
-      return { id: "failed-" + Date.now(), error: true };
-    }
+  async addCrmUpdate(data: any) {
+    return this.addJob(this.crmQueue, "update_customer", data, 4); // CRM niższy priorytet
   }
 
-  // Metody dla kolejki marketplace
-  async addMarketplaceSync(marketplaceData: any) {
-    this.logger.log(`Adding marketplace sync job`);
-
-    if (!this.redisAvailable) {
-      this.logger.warn("Redis unavailable - job logged only (demo mode)");
-      return { id: "demo-" + Date.now(), demo: true };
-    }
-
-    try {
-      return await this.marketplaceQueue.add("sync_product", marketplaceData, {
-        priority: 7, // marketplace ma wysoki priorytet
-      });
-    } catch (error) {
-      this.logger.error("Failed to add marketplace sync job:", error.message);
-      return { id: "failed-" + Date.now(), error: true };
-    }
+  async addMarketplaceSync(data: any) {
+    return this.addJob(this.marketplaceQueue, "sync_product", data, 8); // marketplace wysoki priorytet
   }
 
-  // Logowanie operacji ESB
-  async logIntegrationOperation(logData: any) {
-    this.logger.log(`Logging integration operation`);
-
-    if (!this.redisAvailable) {
-      this.logger.warn("Redis unavailable - operation logged only (demo mode)");
-      return { id: "demo-" + Date.now(), demo: true };
-    }
-
-    try {
-      return await this.integrationLogQueue.add("log_operation", logData, {
-        priority: 1, // logowanie ma najniższy priorytet
-      });
-    } catch (error) {
-      this.logger.error("Failed to log integration operation:", error.message);
-      return { id: "failed-" + Date.now(), error: true };
-    }
+  async logIntegrationOperation(data: any) {
+    return this.addJob(this.integrationLogQueue, "log_operation", data, 1); // logi najniższy priorytet
   }
 
-  // Metody monitoringu
+  // Status wszystkich kolejek
   async getQueueStats() {
     if (!this.redisAvailable) {
       return {
-        redis: { status: "unavailable", configured: isRedisConfigured() },
-        warehouse: { status: "demo-mode" },
-        invoice: { status: "demo-mode" },
-        crm: { status: "demo-mode" },
-        marketplace: { status: "demo-mode" },
-        integrationLog: { status: "demo-mode" },
+        redis: { status: "brak", configured: isRedisConfigured() },
+        queues: { status: "tryb-demo" },
       };
     }
 
     try {
-      const stats = {
-        redis: { status: "connected" },
+      return {
+        redis: { status: "połączony" },
         warehouse: await this.getQueueInfo(this.warehouseQueue),
         invoice: await this.getQueueInfo(this.invoiceQueue),
         crm: await this.getQueueInfo(this.crmQueue),
         marketplace: await this.getQueueInfo(this.marketplaceQueue),
-        integrationLog: await this.getQueueInfo(this.integrationLogQueue),
+        logs: await this.getQueueInfo(this.integrationLogQueue),
       };
-      return stats;
     } catch (error) {
-      this.logger.error("Failed to get queue stats:", error.message);
-      return { redis: { status: "error", message: error.message } };
+      this.logger.error("Błąd pobierania statystyk kolejek:", error.message);
+      return { redis: { status: "błąd", message: error.message } };
     }
   }
 
@@ -185,12 +137,3 @@ export class QueueService {
     };
   }
 }
-
-/**
- * W pełnej implementacji:
- * - Batch operations dla wielu zadań jednocześnie
- * - Scheduler dla zadań cyklicznych
- * - Retry strategies per queue type
- * - Dead letter queue handling
- * - Custom job prioritization algorithms
- */

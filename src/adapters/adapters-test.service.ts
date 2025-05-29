@@ -1,30 +1,44 @@
-import { Injectable, Logger } from "@nestjs/common";
+/*
+ * SERWIS TESTOWY ADAPTERÓW ESB
+ *
+ * Problem do rozwiązania:
+ * Musimy sprawdzić czy wszystkie systemy działają przed uruchomieniem ESB.
+ * DevOps potrzebuje szybkiego health check wszystkich integracji.
+ *
+ * Jak to rozwiązujemy:
+ * Jeden serwis testuje wszystkie adaptery i zwraca jasny raport.
+ * Sprawdza połączenia, podstawowe operacje i mierzy czasy odpowiedzi.
+ *
+ * Dlaczego to ważne:
+ * - Szybka diagnoza problemów z integracją
+ * - Monitoring stanu systemów zewnętrznych
+ * - Health check endpoint dla DevOps
+ */
+
+import { Injectable } from "@nestjs/common";
 import { WarehouseAdapter } from "./warehouse.adapter";
 import { InvoiceAdapter } from "./invoice.adapter";
 import { CrmAdapter } from "./crm.adapter";
 import { MarketplaceAdapter } from "./marketplace.adapter";
-import { AdapterResponse } from "./base/base.adapter";
 
-export interface SystemHealthCheck {
-  system: string;
-  status: "healthy" | "unhealthy" | "degraded";
-  responseTime: number;
+export interface SystemHealthReport {
+  systemName: string;
+  isHealthy: boolean;
+  responseTimeMs?: number;
+  lastChecked: Date;
   error?: string;
-  details?: any;
 }
 
-export interface ESBHealthReport {
-  overall: "healthy" | "unhealthy" | "degraded";
-  systems: SystemHealthCheck[];
-  timestamp: Date;
-  totalSystems: number;
-  healthySystems: number;
+export interface AdapterTestResult {
+  adapterName: string;
+  testPassed: boolean;
+  responseTimeMs: number;
+  error?: string;
+  result?: any;
 }
 
 @Injectable()
 export class AdaptersTestService {
-  private readonly logger = new Logger(AdaptersTestService.name);
-
   constructor(
     private readonly warehouseAdapter: WarehouseAdapter,
     private readonly invoiceAdapter: InvoiceAdapter,
@@ -32,240 +46,177 @@ export class AdaptersTestService {
     private readonly marketplaceAdapter: MarketplaceAdapter
   ) {}
 
-  // Test połączeń ze wszystkimi systemami
-  async testAllSystems(): Promise<ESBHealthReport> {
-    this.logger.log("Running health check for all ESB systems...");
+  // GŁÓWNA FUNKCJA: Sprawdź stan wszystkich systemów ESB
+  async checkAllSystemsHealth(): Promise<SystemHealthReport[]> {
+    const adapters = [
+      { name: "Magazyn", adapter: this.warehouseAdapter },
+      { name: "Fakturowanie", adapter: this.invoiceAdapter },
+      { name: "CRM", adapter: this.crmAdapter },
+      { name: "Marketplace", adapter: this.marketplaceAdapter },
+    ];
 
-    const systems: SystemHealthCheck[] = [];
+    const healthReports: SystemHealthReport[] = [];
 
-    // Test każdego adaptera
-    systems.push(
-      await this.testAdapter("Warehouse", () =>
-        this.warehouseAdapter.testConnection()
-      )
-    );
-    systems.push(
-      await this.testAdapter("Invoice", () =>
-        this.invoiceAdapter.testConnection()
-      )
-    );
-    systems.push(
-      await this.testAdapter("CRM", () => this.crmAdapter.testConnection())
-    );
-    systems.push(
-      await this.testAdapter("Marketplace", () =>
-        this.marketplaceAdapter.testConnection()
-      )
-    );
+    for (const { name, adapter } of adapters) {
+      const testStart = Date.now();
 
-    const healthySystems = systems.filter((s) => s.status === "healthy").length;
-    const degradedSystems = systems.filter(
-      (s) => s.status === "degraded"
-    ).length;
-
-    let overall: "healthy" | "unhealthy" | "degraded" = "healthy";
-    if (healthySystems === 0) {
-      overall = "unhealthy";
-    } else if (degradedSystems > 0 || healthySystems < systems.length) {
-      overall = "degraded";
+      try {
+        const result = await adapter.testConnection();
+        healthReports.push({
+          systemName: name,
+          isHealthy: result.success,
+          responseTimeMs: Date.now() - testStart,
+          lastChecked: new Date(),
+          error: result.error,
+        });
+      } catch (error) {
+        healthReports.push({
+          systemName: name,
+          isHealthy: false,
+          responseTimeMs: Date.now() - testStart,
+          lastChecked: new Date(),
+          error: error.message,
+        });
+      }
     }
 
-    const report: ESBHealthReport = {
-      overall,
-      systems,
-      timestamp: new Date(),
-      totalSystems: systems.length,
-      healthySystems,
-    };
-
-    this.logger.log(
-      `ESB Health Check completed: ${overall} (${healthySystems}/${systems.length} systems healthy)`
-    );
-
-    return report;
-  }
-
-  // Test pojedynczego adaptera
-  private async testAdapter(
-    systemName: string,
-    testFunction: () => Promise<AdapterResponse<boolean>>
-  ): Promise<SystemHealthCheck> {
-    const startTime = Date.now();
-
-    try {
-      const result = await testFunction();
-      const responseTime = Date.now() - startTime;
-
-      return {
-        system: systemName,
-        status: result.success ? "healthy" : "unhealthy",
-        responseTime,
-        error: result.error,
-        details: result.data,
-      };
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-
-      return {
-        system: systemName,
-        status: "unhealthy",
-        responseTime,
-        error: error.message,
-      };
-    }
+    return healthReports;
   }
 
   // Pobierz informacje o wszystkich systemach
-  async getSystemsInfo() {
-    this.logger.log("Getting info for all ESB systems...");
+  async getAllSystemsInfo(): Promise<any[]> {
+    const adapters = [
+      { name: "Magazyn", adapter: this.warehouseAdapter },
+      { name: "Fakturowanie", adapter: this.invoiceAdapter },
+      { name: "CRM", adapter: this.crmAdapter },
+      { name: "Marketplace", adapter: this.marketplaceAdapter },
+    ];
 
-    const results = {
-      warehouse: null,
-      invoice: null,
-      crm: null,
-      marketplace: null,
-    };
+    const systemsInfo = [];
 
-    try {
-      const [warehouseInfo, invoiceInfo, crmInfo, marketplaceInfo] =
-        await Promise.allSettled([
-          this.warehouseAdapter.getSystemInfo(),
-          this.invoiceAdapter.getSystemInfo(),
-          this.crmAdapter.getSystemInfo(),
-          this.marketplaceAdapter.getSystemInfo(),
-        ]);
-
-      results.warehouse =
-        warehouseInfo.status === "fulfilled"
-          ? warehouseInfo.value
-          : { error: warehouseInfo.reason };
-      results.invoice =
-        invoiceInfo.status === "fulfilled"
-          ? invoiceInfo.value
-          : { error: invoiceInfo.reason };
-      results.crm =
-        crmInfo.status === "fulfilled"
-          ? crmInfo.value
-          : { error: crmInfo.reason };
-      results.marketplace =
-        marketplaceInfo.status === "fulfilled"
-          ? marketplaceInfo.value
-          : { error: marketplaceInfo.reason };
-    } catch (error) {
-      this.logger.error("Error getting systems info:", error);
-    }
-
-    return results;
-  }
-
-  // Test specyficznych operacji każdego adaptera
-  async testAdapterOperations() {
-    this.logger.log("Testing specific adapter operations...");
-
-    const results = {
-      warehouse: await this.testWarehouseOperations(),
-      invoice: await this.testInvoiceOperations(),
-      crm: await this.testCrmOperations(),
-      marketplace: await this.testMarketplaceOperations(),
-    };
-
-    return results;
-  }
-
-  private async testWarehouseOperations() {
-    try {
-      // Test pobrania produktu
-      const product = await this.warehouseAdapter.getProduct("PROD-001");
-
-      if (product.success) {
-        // Test aktualizacji stanu
-        const stockUpdate = await this.warehouseAdapter.updateStock({
-          productId: "PROD-001",
-          newQuantity: 1,
-          operation: "add",
-          reason: "ESB test operation",
+    for (const { name, adapter } of adapters) {
+      try {
+        const result = await adapter.getSystemInfo();
+        systemsInfo.push({
+          adapterName: name,
+          info: result.data,
+          success: result.success,
         });
-
-        return {
-          getProduct: product.success,
-          updateStock: stockUpdate.success,
-          responseTime: product.executionTime + stockUpdate.executionTime,
-        };
+      } catch (error) {
+        systemsInfo.push({
+          adapterName: name,
+          error: error.message,
+          success: false,
+        });
       }
-
-      return { error: product.error };
-    } catch (error) {
-      return { error: error.message };
     }
+
+    return systemsInfo;
   }
 
-  private async testInvoiceOperations() {
+  // Test podstawowych operacji każdego adaptera
+  async testAdapterOperations(): Promise<AdapterTestResult[]> {
+    const results: AdapterTestResult[] = [];
+
+    // Test magazynu - aktualizacja stanu
     try {
-      // Test tworzenia faktury
-      const invoice = await this.invoiceAdapter.createInvoice({
-        orderNumber: "TEST-001",
+      const startTime = Date.now();
+      const result = await this.warehouseAdapter.updateStock({
+        productId: "PROD-001",
+        newQuantity: 10,
+        operation: "set",
+      });
+
+      results.push({
+        adapterName: "Magazyn - aktualizacja stanu",
+        testPassed: result.success,
+        responseTimeMs: Date.now() - startTime,
+        result: result.data,
+        error: result.error,
+      });
+    } catch (error) {
+      results.push({
+        adapterName: "Magazyn - aktualizacja stanu",
+        testPassed: false,
+        responseTimeMs: 0,
+        error: error.message,
+      });
+    }
+
+    // Test fakturowania - tworzenie faktury
+    try {
+      const startTime = Date.now();
+      const result = await this.invoiceAdapter.createInvoice({
         customerId: "CUST-001",
-        items: [
-          {
-            productId: "PROD-001",
-            productName: "Test Product",
-            quantity: 1,
-            unitPrice: 100,
-            taxRate: 23,
-          },
-        ],
+        items: [{ description: "Test produkt", quantity: 1, unitPrice: 100 }],
       });
 
-      return {
-        createInvoice: invoice.success,
-        invoiceId: invoice.data?.id,
-        responseTime: invoice.executionTime,
-      };
+      results.push({
+        adapterName: "Fakturowanie - tworzenie faktury",
+        testPassed: result.success,
+        responseTimeMs: Date.now() - startTime,
+        result: result.data,
+        error: result.error,
+      });
     } catch (error) {
-      return { error: error.message };
+      results.push({
+        adapterName: "Fakturowanie - tworzenie faktury",
+        testPassed: false,
+        responseTimeMs: 0,
+        error: error.message,
+      });
     }
-  }
 
-  private async testCrmOperations() {
+    // Test CRM - dodanie klienta
     try {
-      // Test tworzenia klienta
-      const customer = await this.crmAdapter.createCustomer({
-        email: "test@esb.com",
-        firstName: "ESB",
-        lastName: "Test",
+      const startTime = Date.now();
+      const result = await this.crmAdapter.createCustomer({
+        email: "test@example.com",
+        firstName: "Jan",
+        lastName: "Testowy",
       });
 
-      return {
-        createCustomer: customer.success,
-        customerId: customer.data?.id,
-        responseTime: customer.executionTime,
-      };
+      results.push({
+        adapterName: "CRM - dodanie klienta",
+        testPassed: result.success,
+        responseTimeMs: Date.now() - startTime,
+        result: result.data,
+        error: result.error,
+      });
     } catch (error) {
-      return { error: error.message };
+      results.push({
+        adapterName: "CRM - dodanie klienta",
+        testPassed: false,
+        responseTimeMs: 0,
+        error: error.message,
+      });
     }
-  }
 
-  private async testMarketplaceOperations() {
+    // Test Marketplace - synchronizacja produktu
     try {
-      // Test pobrania zamówienia
-      const order = await this.marketplaceAdapter.getOrder("ORD-12345");
+      const startTime = Date.now();
+      const result = await this.marketplaceAdapter.syncProduct({
+        productId: "PROD-001",
+        stockQuantity: 15,
+        price: 4999,
+      });
 
-      if (order.success) {
-        // Test synchronizacji inventory
-        const syncResult = await this.marketplaceAdapter.syncInventory([
-          { productId: "PROD-001", stockQuantity: 10 },
-        ]);
-
-        return {
-          getOrder: order.success,
-          syncInventory: syncResult.success,
-          responseTime: order.executionTime + syncResult.executionTime,
-        };
-      }
-
-      return { error: order.error };
+      results.push({
+        adapterName: "Marketplace - sync produktu",
+        testPassed: result.success,
+        responseTimeMs: Date.now() - startTime,
+        result: result.data,
+        error: result.error,
+      });
     } catch (error) {
-      return { error: error.message };
+      results.push({
+        adapterName: "Marketplace - sync produktu",
+        testPassed: false,
+        responseTimeMs: 0,
+        error: error.message,
+      });
     }
+
+    return results;
   }
 }

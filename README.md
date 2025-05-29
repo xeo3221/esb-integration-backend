@@ -11,13 +11,45 @@ Enterprise Service Bus (ESB) do integracji systemów e-commerce:
 
 ## Aktualny stan projektu
 
-### TODO Lista (Prosta)
+### TODO Lista
+
+#### ✅ **Podstawowa infrastruktura (GOTOWE)**
 
 - [x] Stwórz backend (Nest.js + TypeScript)
 - [x] Skonfiguruj Drizzle ORM i połączenie z Neon (PostgreSQL)
 - [x] Skonfiguruj kolejki BullMQ/Redis do obsługi przepływów
-- [x] Zaimplementuj adaptery do wszystkich systemów (magazyn, fakturowanie, CRM, marketplace)
-- [ ] Dodaj walidację, logowanie i testy
+- [x] Zaimplementuj adaptery do wszystkich systemów:
+  - [x] System magazynowy (file polling/DB access)
+  - [x] System fakturowania (REST API)
+  - [x] CRM (REST API)
+  - [x] Marketplace (REST API, webhooki)
+- [x] Retry logic (3 próby z exponential backoff)
+- [x] Prosty circuit breaker (timeout + retry)
+- [x] Health checki (baza, Redis, adaptery)
+
+#### ✅ **Główne przepływy ESB (DEMO GOTOWE)**
+
+- [x] **Order Processing Flow** - przetwarzanie zamówień przez wszystkie systemy
+  - [x] REST API do przyjmowania zamówień
+  - [x] Orchestrator workflow (inventory → invoice → CRM → marketplace)
+  - [x] Tracking statusu każdego kroku
+  - [x] Demo endpoint z przykładowym zamówieniem
+
+#### 🚧 **Główne przepływy ESB (TODO)**
+
+- [ ] Synchronizacja stanów magazynowych (inventory sync flow)
+- [ ] Wymiana danych o klientach (customer data flow)
+
+#### 🔧 **Walidacja i jakość kodu (TODO)**
+
+- [ ] Walidacja danych (Zod)
+- [ ] Logowanie (Pino/Winston) + Correlation ID
+- [ ] Dead letter queue (oznaczenie w bazie lub osobna kolejka)
+- [ ] Testy (Jest)
+- [ ] Dokumentacja API (Swagger)
+
+#### 🚀 **Deployment (TODO)**
+
 - [ ] Wdróż aplikację na Railway
 
 ## Uruchomienie
@@ -74,6 +106,38 @@ npm run db:studio
 - `GET /adapters/health` - Health check wszystkich systemów ESB
 - `GET /adapters/info` - Informacje o wszystkich systemach
 - `GET /adapters/test-operations` - Test operacji każdego adaptera
+
+### 🆕 Order Processing Flow (DEMO)
+
+- `POST /orders/demo` - Utworzenie demo zamówienia (Laptop + mysz)
+- `POST /orders` - Przyjęcie nowego zamówienia (custom data)
+- `GET /orders/:orderId` - Status konkretnego zamówienia
+- `GET /orders` - Lista wszystkich zamówień (dev purpose)
+
+**Demo Flow:**
+
+```
+1. POST /orders/demo → tworzy zamówienie
+2. Kolejka inventory → sprawdza/rezerwuje produkty
+3. Kolejka invoice → generuje fakturę
+4. Kolejka CRM → dodaje klienta + wysyła email
+5. Kolejka marketplace → aktualizuje status zamówienia
+```
+
+**Przykład response:**
+
+```json
+{
+  "orderId": "order-1234567890",
+  "status": "processing",
+  "steps": [
+    { "step": "inventory", "status": "queued", "jobId": "demo-123" },
+    { "step": "invoice", "status": "pending" },
+    { "step": "crm", "status": "pending" },
+    { "step": "marketplace", "status": "pending" }
+  ]
+}
+```
 
 ## Konfiguracja
 
