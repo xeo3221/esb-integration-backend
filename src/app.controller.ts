@@ -18,4 +18,13 @@ export class AppController {
       service: "ESB Integration API",
     };
   }
+
+  @Get("/health/database")
+  async getDatabaseHealth(): Promise<object> {
+    const dbStatus = await this.appService.testDatabaseConnection();
+    return {
+      database: dbStatus,
+      service: "ESB Integration API",
+    };
+  }
 }
