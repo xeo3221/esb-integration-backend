@@ -15,8 +15,8 @@ Enterprise Service Bus (ESB) do integracji systemów e-commerce:
 
 - [x] Stwórz backend (Nest.js + TypeScript)
 - [x] Skonfiguruj Drizzle ORM i połączenie z Neon (PostgreSQL)
+- [x] Skonfiguruj kolejki BullMQ/Redis do obsługi przepływów
 - [ ] Zaimplementuj adaptery do wszystkich systemów (magazyn, fakturowanie, CRM, marketplace)
-- [ ] Skonfiguruj kolejki BullMQ/Redis do obsługi przepływów
 - [ ] Dodaj walidację, logowanie i testy
 - [ ] Wdróż aplikację na Railway
 
@@ -27,7 +27,7 @@ Enterprise Service Bus (ESB) do integracji systemów e-commerce:
 npm install
 
 # Skopiuj przykładową konfigurację
-cp env.example .env
+cp .env.example .env
 # Edytuj .env i dodaj DATABASE_URL z Neon
 
 # Uruchomienie w trybie deweloperskim
@@ -61,9 +61,19 @@ npm run db:studio
 - `GET /` - Informacje o API
 - `GET /health` - Status zdrowia aplikacji
 - `GET /health/database` - Status połączenia z bazą danych
+- `GET /queues/stats` - Statystyki kolejek ESB
+- `POST /test/warehouse-sync` - Test kolejki magazynu
 
 ## Konfiguracja
 
-Skopiuj `env.example` do `.env` i uzupełnij:
+Skopiuj `.env.example` do `.env` i uzupełnij:
 
-- `DATABASE_URL` - URL połączenia z bazą Neon
+- `DATABASE_URL` - URL połączenia z bazą Neon (wymagane)
+- `REDIS_HOST` - Host Redis dla kolejek (opcjonalne, domyślnie tryb demo)
+
+## Systemy kolejek
+
+Aplikacja może działać w dwóch trybach:
+
+- **Z Redis**: Pełne kolejki BullMQ z persystencją
+- **Tryb demo**: Bez Redis, operacje logowane w konsoli (dla development)
