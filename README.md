@@ -1,4 +1,4 @@
-# 🚀 ESB Integration API - E-commerce Demo
+# 🚀 API Integracji ESB - Demo E-commerce
 
 > **Demo Enterprise Service Bus dla startup e-commerce - Proof of Concept integracji 4 systemów**
 
@@ -52,7 +52,7 @@ Demo Enterprise Service Bus (ESB) symulujące integrację systemów e-commerce:
 
 ## ✨ Co Jest Zaimplementowane (Demo Mode)
 
-### 🎯 **Core ESB Infrastructure (Demo)**
+### 🎯 **Core ESB Infrastructure**
 
 - ✅ **4 Adaptery systemów** z retry logic i health checks (symulacja)
 - ✅ **5 Kolejek BullMQ** w trybie demo (bez prawdziwego Redis)
@@ -60,14 +60,14 @@ Demo Enterprise Service Bus (ESB) symulujące integrację systemów e-commerce:
 - ✅ **Health monitoring** wszystkich symulowanych systemów
 - ✅ **Demo mode** - wszystko działa bez zewnętrznych systemów
 
-### 🔄 **Business Flows (Demo)**
+### 🔄 **Business Flows**
 
 - ✅ **Order Processing Flow** - pełny flow przez 4 kolejki (symulowany)
 - ✅ **Inventory Sync Flow** - batch + real-time synchronization logic
 - ✅ **Orchestrator pattern** z tracking każdego kroku
 - ✅ **Status monitoring** w real-time
 
-### 🛠️ **Professional Features (Demo)**
+### 🛠️ **Professional Features**
 
 - ✅ **Swagger Documentation** - profesjonalna dokumentacja API
 - ✅ **Correlation ID Middleware** - śledzenie requestów
@@ -77,15 +77,15 @@ Demo Enterprise Service Bus (ESB) symulujące integrację systemów e-commerce:
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Szybki Start
 
 ```bash
 npm install && npm run start:dev
 curl http://localhost:3000/health  # Test demo
-open http://localhost:3000/api     # Swagger docs
+open http://localhost:3000/api     # Dokumentacja Swagger
 ```
 
-**🎯 DEMO MODE:** Wszystko działa "out of the box" - bez Redis, bez bazy danych, bez zewnętrznych systemów!
+**🎯 TRYB DEMO:** Wszystko działa "out of the box" - bez Redis, bez bazy danych, bez zewnętrznych systemów!
 
 ### Wymagania
 
@@ -97,7 +97,7 @@ open http://localhost:3000/api     # Swagger docs
 ### 1. Instalacja
 
 ```bash
-git clone <repo>
+git clone https://github.com/xeo3221/esb-integration-backend.git
 cd backend
 npm install
 ```
@@ -114,36 +114,36 @@ DATABASE_URL="postgresql://..."  # Opcjonalne - demo działa bez bazy
 # Redis nie jest potrzebne w demo mode
 ```
 
-### 3. Uruchomienie Demo
+### 3. Uruchomienie
 
 ```bash
-# Development mode - DEMO
+# Development mode
 npm run start:dev
 
-# Demo działa od razu bez dodatkowej konfiguracji!
+# Aplikacja działa od razu bez dodatkowej konfiguracji!
 ```
 
-### 4. Sprawdź czy Demo działa
+### 4. Sprawdź czy działa
 
 ```bash
 curl http://localhost:3000/health
 # ✅ {"status":"ok","timestamp":"...","mode":"demo"}
 
-# Otwórz dokumentację demo
+# Otwórz dokumentację
 open http://localhost:3000/api
 ```
 
 ---
 
-## 📚 API Documentation
+## 📚 Dokumentacja API
 
-### 🌐 **Swagger UI**: `http://localhost:3000/api`
+### 🌐 **Interfejs Swagger**: `http://localhost:3000/api`
 
 Pełna interaktywna dokumentacja z przykładami i testowaniem endpoints.
 
 ### 🔍 **Główne Endpoints**
 
-#### **Health & Monitoring**
+#### **Stan Zdrowia i Monitoring**
 
 ```bash
 GET  /health                    # Status aplikacji
@@ -152,7 +152,7 @@ GET  /adapters/health          # Status wszystkich systemów
 GET  /queues/stats             # Statystyki kolejek ESB
 ```
 
-#### **Order Processing Flow** 🛒
+#### **Przepływ Przetwarzania Zamówień** 🛒
 
 ```bash
 POST /orders/demo              # Demo zamówienie (laptop + mysz)
@@ -161,7 +161,7 @@ GET  /orders/:orderId          # Status zamówienia
 GET  /orders                   # Lista zamówień
 ```
 
-#### **Inventory Sync Flow** 📦
+#### **Przepływ Synchronizacji Zapasów** 📦
 
 ```bash
 POST /inventory/sync/demo      # Demo synchronizacja
@@ -170,7 +170,7 @@ GET  /inventory/sync/:syncId   # Status synchronizacji
 GET  /inventory/sync           # Lista synchronizacji
 ```
 
-#### **System Testing** 🔧
+#### **Testowanie Systemów** 🔧
 
 ```bash
 GET  /adapters/info            # Info o systemach
@@ -180,52 +180,23 @@ POST /test/warehouse-sync      # Test kolejki magazynu
 
 ---
 
-## 🎮 Demo Scenarios
+## 🎮 Scenariusze Testowania - Symulowane Przepływy
 
-### 1. 🛒 **Order Processing Demo**
+### 1. 🛒 **Symulacja Przetwarzania Zamówień**
+
+**Co demo pokazuje:** Pełną orkiestrację ESB przez wszystkie 4 systemy (magazyn → faktury → CRM → marketplace)
+
+**Uwaga:** Wszystkie operacje są symulowane i logowane - brak prawdziwych integracji z zewnętrznymi systemami.
 
 ```bash
-# Utwórz demo zamówienie
+# Utwórz zamówienie
 curl -X POST http://localhost:3000/orders/demo
-
-# Response:
-{
-  "orderId": "order-1234567890",
-  "status": "processing",
-  "customerId": "demo-customer-123",
-  "totalAmount": 5259.97,
-  "createdAt": "2025-05-29T21:00:00.000Z"
-}
-
-# Sprawdź szczegóły
-curl http://localhost:3000/orders/order-1234567890
-
-# Response:
-{
-  "orderId": "order-1234567890",
-  "status": "processing",
-  "customer": {
-    "name": "Jan Kowalski",
-    "email": "demo@example.com"
-  },
-  "items": [
-    {"productName": "Laptop Dell XPS", "quantity": 1, "price": 4999.99},
-    {"productName": "Mysz bezprzewodowa", "quantity": 2, "price": 129.99}
-  ],
-  "totalAmount": 5259.97,
-  "steps": [
-    {"step": "inventory", "status": "queued"},
-    {"step": "invoice", "status": "pending"},
-    {"step": "crm", "status": "pending"},
-    {"step": "marketplace", "status": "pending"}
-  ]
-}
 ```
 
-### 2. 📦 **Inventory Sync Demo**
+### 2. 📦 **Inventory Sync**
 
 ```bash
-# Uruchom demo synchronizację
+# Uruchom synchronizację
 curl -X POST http://localhost:3000/inventory/sync/demo
 
 # Response:
@@ -242,7 +213,7 @@ curl -X POST http://localhost:3000/inventory/sync/demo
 curl http://localhost:3000/inventory/sync/sync-1234567890
 ```
 
-### 3. 🏥 **Health Check Demo**
+### 3. 🏥 **Health Check**
 
 ```bash
 # Status całego systemu
@@ -260,11 +231,11 @@ curl http://localhost:3000/adapters/health
 
 ---
 
-## 🏭 Przepływy Biznesowe - Demo
+## 🏭 Przepływy Biznesowe
 
-### 🛒 **Order Processing Flow (Demo)**
+### 🛒 **Order Processing Flow**
 
-**Co faktycznie działa w naszym demo:**
+**Co faktycznie działa:**
 
 ```
 Klient → POST /orders/demo → ESB Orchestrator (symulacja)
@@ -280,7 +251,7 @@ Klient → POST /orders/demo → ESB Orchestrator (symulacja)
 Status: "completed" - wszystkie kroki przeszły natychmiast
 ```
 
-**Demo pokazuje:**
+**Co pokazuje:**
 
 - ✅ Pełną orchestrację przez kolejki ESB
 - ✅ Status tracking każdego kroku
@@ -289,7 +260,7 @@ Status: "completed" - wszystkie kroki przeszły natychmiast
 
 ### 📦 **Inventory Sync Flow (Częściowo)**
 
-**Co mamy w demo:**
+**Co mamy:**
 
 ```
 Trigger → POST /inventory/sync/demo → Basic Endpoint
@@ -303,9 +274,9 @@ STATUS: Tylko podstawowy endpoint - brak pełnego flow
 - ⚠️ Brak pełnej implementacji sync logic
 - 🎯 Proof of concept dla architektury
 
-### 🎯 **Co Demo Faktycznie Testuje:**
+### 🎯 **Co Faktycznie Testuje:**
 
-| Funkcjonalność    | Demo Status          | Co Możesz Przetestować            |
+| Funkcjonalność    | Status               | Co Możesz Przetestować            |
 | ----------------- | -------------------- | --------------------------------- |
 | Order Processing  | ✅ Pełny flow        | Cały orchestrator przez 4 kolejki |
 | Inventory Sync    | ⚠️ Tylko endpoint    | Podstawowy API call               |
@@ -330,8 +301,8 @@ STATUS: Tylko podstawowy endpoint - brak pełnego flow
 
 ### **Message Queues**
 
-- **BullMQ** - Robust job/message queue
-- **Redis** - In-memory storage dla kolejek
+- **BullMQ** - Robust job/message queue (**DEMO: symulowane w pamięci**)
+- **Redis** - In-memory storage dla kolejek (**DEMO: nie używane**)
 
 ### **API & Documentation**
 
@@ -342,7 +313,7 @@ STATUS: Tylko podstawowy endpoint - brak pełnego flow
 
 - **Correlation ID** - Request tracking across services
 - **Health Checks** - System status monitoring
-- **Structured Logging** - Comprehensive operation logs
+- **Structured Logging** - Comprehensive operation logs (**DEMO: główny sposób debugowania**)
 
 ---
 
@@ -358,12 +329,12 @@ backend/
 │   │   ├── marketplace.adapter.ts    # Marketplace (REST + webhooks)
 │   │   └── adapters-test.service.ts  # Testing service
 │   │
-│   ├── queues/             # Kolejki ESB i procesory
+│   ├── queues/             # Kolejki ESB i procesory (DEMO MODE)
 │   │   ├── processors/
-│   │   │   └── warehouse.processor.ts # Worker dla kolejki magazynu
-│   │   ├── queue.service.ts          # Centralne zarządzanie kolejkami
+│   │   │   └── warehouse.processor.ts # Worker dla kolejki magazynu (NIE UŻYWANE)
+│   │   ├── queue.service.ts          # Symulacja kolejek (demo mode)
 │   │   ├── queue.constants.ts        # Nazwy kolejek
-│   │   └── queues.module.ts          # Moduł kolejek
+│   │   └── queues.module.ts          # Moduł kolejek (bez Redis)
 │   │
 │   ├── orders/             # Business logic zamówień
 │   │   ├── order-processing.service.ts # Orchestrator zamówień
@@ -374,7 +345,7 @@ backend/
 │   │
 │   ├── config/             # Konfiguracja systemu
 │   │   ├── database.module.ts         # PostgreSQL + Drizzle
-│   │   └── redis.config.ts            # Redis + BullMQ
+│   │   └── redis.config.ts            # Redis config (demo: nie używane)
 │   │
 │   ├── common/             # Shared utilities
 │   │   └── correlation-id.middleware.ts # Request tracking
@@ -399,14 +370,17 @@ backend/
 # Test health checks
 curl http://localhost:3000/health
 
-# Test order flow
+# Test order flow (symulowany)
 curl -X POST http://localhost:3000/orders/demo
 
-# Test inventory sync
+# Test inventory sync (symulowany)
 curl -X POST http://localhost:3000/inventory/sync/demo
 
-# Test adapters
+# Test adapters (symulowane)
 curl http://localhost:3000/adapters/health
+
+# Sprawdź "statystyki" kolejek (fake)
+curl http://localhost:3000/queues/stats
 ```
 
 ### **Database Operations**
@@ -436,39 +410,9 @@ curl -H "X-Correlation-ID: my-test-123" http://localhost:3000/health
 
 ---
 
-## 🌍 Deployment & Production
+## 🎯 Wartość Projektu
 
-### **Environment Variables**
-
-```bash
-# Required
-DATABASE_URL=postgresql://user:pass@host:5432/db
-
-# Optional (demo mode without Redis)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=secret
-
-# Application
-PORT=3000
-NODE_ENV=production
-```
-
-### **Production Checklist**
-
-- ✅ PostgreSQL database configured
-- ✅ Redis instance running (optional)
-- ✅ Environment variables set
-- ✅ Build process: `npm run build`
-- ✅ Health checks configured
-- ✅ Logging configured
-- ✅ Monitoring enabled
-
----
-
-## 🎯 Demo Value & Architecture Showcase
-
-### **Co Demo Pokazuje**
+### **Co Pokazuje**
 
 **Architektura ESB dla problemu startup e-commerce:**
 
@@ -477,9 +421,9 @@ NODE_ENV=production
 - 👥 Marketing CRM system - **SYMULACJA**
 - 🛒 Marketplace integrations - **SYMULACJA**
 
-**Demo nie rozwiązuje problemu** - **pokazuje jak by go rozwiązać**.
+**Projekt nie rozwiązuje problemu** - **pokazuje jak by go rozwiązać**.
 
-### **Key Demo Features**
+### **Key Features**
 
 - ⚡ **Async Processing Architecture** - Kolejki ESB
 - 🔄 **Retry Logic Pattern** - Automatic error recovery simulation
@@ -488,92 +432,18 @@ NODE_ENV=production
 - 🛡️ **Error Handling** - Graceful failures with retry
 - 📈 **Orchestration** - Business flow management
 
-### **Demo vs Real Implementation**
-
-| Aspekt         | Demo                | Prawdziwa Implementacja        |
-| -------------- | ------------------- | ------------------------------ |
-| **Demo Mode**  | Out of the box      | External dependencies required |
-| **Adaptery**   | Symulują API calls  | Prawdziwe REST/FTP integration |
-| **Kolejki**    | BullMQ w pamięci    | Redis cluster + workers        |
-| **Baza**       | Opcjonalna          | Wymagana + migrations          |
-| **Monitoring** | Basic health checks | ELK Stack + alerting           |
-| **Security**   | Brak                | OAuth + rate limiting          |
-| **Deployment** | Local development   | Docker + K8s                   |
-
-**🎯 Cel Demo:** Proof of Concept architektury ESB + portfolio showcase
-
 ---
 
-## 👨‍💻 Developer Experience - Demo
+## ⚙️ Kolejki ESB
 
-### **Demo Code Quality**
+**UWAGA:** Kolejki działają w trybie symulacji.
 
-- 📝 **TypeScript** - Type safety i IntelliSense
-- 📖 **Comprehensive comments** - Each file explains ESB patterns
-- 🏗️ **Clean architecture** - Separation of concerns showcase
-- 📏 **Right-sized files** - 37-235 lines per file (interview-friendly)
-- 🎯 **Demo mode** - Works without external dependencies
-
-### **Demo API Experience**
-
-- 📚 **Swagger UI** - Interactive documentation (localhost:3000/api)
-- 🔗 **Correlation IDs** - Request tracing pattern
-- 🏥 **Health checks** - System status visibility
-- 🎮 **Demo endpoints** - Easy testing (`/orders/demo`, `/inventory/sync/demo`)
-
-### **Demo Debugging**
-
-- 📋 **Structured logging** - Console logs show ESB flow
-- 🔍 **Correlation tracking** - Follow requests across services
-- 💡 **Descriptive errors** - Clear error messages in simulation
-- 📊 **Queue statistics** - Visibility into demo processing
-
----
-
-## 🤝 Demo Info & Purpose
-
-Ten projekt to **demonstration ESB architecture** - Proof of Concept dla recruitment/portfolio.
-
-**Demo design decisions:**
-
-- ✅ Demo mode works without external dependencies
-- ✅ Each file is self-documenting with Polish comments
-- ✅ Clean, readable code optimized for technical interviews
-- ✅ Real-world enterprise patterns (orchestrator, adapters, queues)
-- ✅ Professional-grade error handling simulation
-
-**🎯 Używaj tego demo do:**
-
-- Zrozumienia architektury ESB
-- Testowania API patterns
-- Portfolio/recruitment showcase
-- Learning enterprise integration patterns
-
----
-
-## 📞 Demo Support
-
-**Demo endpoints:**
-
-- API Documentation: http://localhost:3000/api
-- Health Status: http://localhost:3000/health
-- Queue Stats: http://localhost:3000/queues/stats
-
-**Demo requirements:**
-
-- Node.js 18+
-- npm install && npm run start:dev
-- **That's it!** - No database, no Redis, no external systems needed
-
-**Quick demo test:**
+- ✅ **Struktura BullMQ** - prawidłowa architektura kolejek
+- ⚠️ **Redis nie używany** - działa bez external dependencies
+- ⚠️ **Jobs symulowane** - zadania logowane ale nie wykonywane async
 
 ```bash
-curl http://localhost:3000/health              # Check demo status
-curl -X POST http://localhost:3000/orders/demo # Test full order flow
-curl http://localhost:3000/adapters/health     # Test all adapters
-curl http://localhost:3000/queues/stats        # Check queue simulation
+curl http://localhost:3000/queues/stats  # Fake stats, prawdziwa struktura
 ```
-
-**🎯 Remember:** This is a DEMO - shows architecture, not real integration!
 
 ---
