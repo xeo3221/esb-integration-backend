@@ -2,7 +2,7 @@
 
 > **Demo Enterprise Service Bus dla startup e-commerce - Proof of Concept integracji 4 systemów**
 
-📖 **Pełna dokumentacja:** Zobacz [docs.md](../docs.md) dla kompletnego rozwiązania zadania
+📖 **Pełna dokumentacja:** Zobacz [docs.md](https://github.com/xeo3221/esb-integration-backend/blob/main/docs.md) dla kompletnego rozwiązania zadania
 
 ## 📋 Opis Projektu
 
