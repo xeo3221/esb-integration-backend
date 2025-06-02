@@ -23,7 +23,7 @@
  * - ValidationModule (Zod, class-validator)
  */
 
-import { Module } from "@nestjs/common";
+import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -31,6 +31,7 @@ import { DatabaseModule } from "./config/database.module";
 import { QueuesModule } from "./queues/queues.module";
 import { AdaptersModule } from "./adapters/adapters.module";
 import { OrdersModule } from "./orders/orders.module";
+import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
 
 @Module({
   imports: [
@@ -46,4 +47,8 @@ import { OrdersModule } from "./orders/orders.module";
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware).forRoutes("*"); // Dla wszystkich routów
+  }
+}

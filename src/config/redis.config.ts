@@ -14,7 +14,7 @@
  * - Graceful shutdown
  */
 
-import { BullRootModuleOptions } from "@nestjs/bull";
+import { BullRootModuleOptions } from "@nestjs/bullmq";
 
 // Sprawdzenie czy Redis jest dostępny
 export const isRedisConfigured = () => {
@@ -22,7 +22,7 @@ export const isRedisConfigured = () => {
 };
 
 export const redisConfig: BullRootModuleOptions = {
-  redis: {
+  connection: {
     host: process.env.REDIS_HOST || "localhost",
     port: parseInt(process.env.REDIS_PORT || "6379"),
     password: process.env.REDIS_PASSWORD || undefined,
@@ -33,7 +33,7 @@ export const redisConfig: BullRootModuleOptions = {
     // Dla demonstracji - nie blokuj aplikacji jeśli Redis niedostępny
     connectTimeout: 5000,
   },
-  // Domyślne ustawienia kolejek
+  // Domyślne ustawienia zadań
   defaultJobOptions: {
     removeOnComplete: 50, // zachowaj 50 zakończonych zadań
     removeOnFail: 50, // zachowaj 50 nieudanych zadań

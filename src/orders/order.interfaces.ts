@@ -1,11 +1,26 @@
 /*
- * INTERFEJSY ZAMÓWIEŃ ESB - DEMO
+ * TRANSFORM ENGINE - Standardowe interfejsy wymiany danych ESB
  *
- * Problem: ESB musi przetworzyć zamówienie przez wszystkie systemy.
- * Rozwiązanie: Standardowe interfejsy dla order processing flow.
+ * Problem: ESB musi przetworzyć zamówienie przez wszystkie systemy
+ * z różnymi formatami danych (legacy DB, REST APIs, CSV files).
+ *
+ * Rozwiązanie: Kanoniczne interfejsy + data mapping dla wszystkich systemów.
+ *
+ * Przepływ danych (jak w docs.md):
+ * - Marketplace → OrderRequest (JSON REST)
+ * - Magazyn → Multi-modal format (DB/CSV/UI)
+ * - Faktury → REST API format
+ * - CRM → Customer profile format
+ *
+ * W pełnej implementacji:
+ * - Walidacja Zod dla wszystkich interfejsów
+ * - Schema versioning i backward compatibility
+ * - Data transformation między formatami systemów
+ * - JSON Schema validation
+ * - Audit trail dla wszystkich transformacji
+ * - Error recovery przy błędach walidacji
  *
  * Demo flow: Order → Inventory → Invoice → CRM → Marketplace
- * W pełnej implementacji: walidacja Zod, audit trail, error recovery
  */
 
 export interface OrderItem {

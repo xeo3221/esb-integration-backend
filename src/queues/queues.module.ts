@@ -1,23 +1,18 @@
 /*
- * MODUŁ KOLEJEK ESB
+ * MODUŁ KOLEJEK ESB - DEMO MODE
  *
  * Problem do rozwiązania:
  * ESB musi przetwarzać operacje asynchronicznie w tle.
  * Każdy system (magazyn, faktury, CRM) potrzebuje swojej kolejki.
  *
- * Jak to rozwiązujemy:
- * Moduł konfiguruje BullMQ z Redis:
- * - Rejestruje wszystkie kolejki ESB
- * - Łączy procesory do obsługi zadań
- * - Udostępnia QueueService do dodawania zadań
- *
- * Dlaczego BullMQ:
- * - Mature library z długą historią
- * - Redis backend - szybki i niezawodny
- * - Built-in retry logic i error handling
- * - Dashboard do monitorowania kolejek
+ * Jak to rozwiązujemy w DEMO MODE:
+ * Moduł dostarcza QueueService który symuluje kolejki:
+ * - Loguje wszystkie operacje
+ * - Zwraca fake job IDs
+ * - Pokazuje jak by działały prawdziwe kolejki
  *
  * W pełnej implementacji:
+ * - BullMQ + Redis configuration
  * - Dead letter queues dla nieudanych zadań
  * - Priorytetyzacja zadań (faktury > logi)
  * - Rate limiting dla zewnętrznych API
@@ -27,27 +22,11 @@
  */
 
 import { Module } from "@nestjs/common";
-import { BullModule } from "@nestjs/bull";
-import { redisConfig } from "../config/redis.config";
-import { WarehouseProcessor } from "./processors/warehouse.processor";
 import { QueueService } from "./queue.service";
-import { QUEUE_NAMES } from "./queue.constants";
 
 @Module({
-  imports: [
-    // Główna konfiguracja BullMQ
-    BullModule.forRoot(redisConfig),
-
-    // Rejestracja kolejek
-    BullModule.registerQueue(
-      { name: QUEUE_NAMES.WAREHOUSE_SYNC },
-      { name: QUEUE_NAMES.INVOICE_PROCESSING },
-      { name: QUEUE_NAMES.CRM_UPDATES },
-      { name: QUEUE_NAMES.MARKETPLACE_SYNC },
-      { name: QUEUE_NAMES.INTEGRATION_LOG }
-    ),
-  ],
-  providers: [WarehouseProcessor, QueueService],
-  exports: [BullModule, QueueService],
+  imports: [],
+  providers: [QueueService],
+  exports: [QueueService],
 })
 export class QueuesModule {}

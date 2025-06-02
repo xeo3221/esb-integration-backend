@@ -1,20 +1,33 @@
 /*
- * ADAPTER SYSTEMU MAGAZYNOWEGO - ESB Integration
+ * ADAPTER SYSTEMU MAGAZYNOWEGO - Multi-Modal Access
  *
  * Problem do rozwiązania:
- * System magazynowy nie ma API - tylko pliki CSV na FTP lub baza danych.
- * Inne systemy potrzebują aktualnych stanów magazynowych.
+ * System magazynowy nie ma API - jest to legacy system AS400/Oracle.
+ * Potrzebujemy hierarchii dostępu z automatycznym failover.
+ *
+ * Strategia Multi-Modal Access (jak w docs.md):
+ * 1. PRIMARY: Bezpośredni dostęp do bazy (JDBC read-only)
+ * 2. FALLBACK: Polling plików CSV z FTP/SFTP (co 15 min)
+ * 3. LAST RESORT: Screen scraping legacy UI
  *
  * Jak to rozwiązujemy:
- * Ten adapter "udaje" że magazyn ma API. W rzeczywistości:
- * - Czyta pliki CSV co 15 minut z FTP
- * - Albo łączy się bezpośrednio z bazą magazynu
- * - Konwertuje dane na format zrozumiały dla ESB
+ * - Circuit breaker dla każdego typu połączenia
+ * - Automatyczny failover między metodami dostępu
+ * - Metryki sukcesu per metoda dostępu
+ * - Exponential backoff przy błędach sieci
+ *
+ * W pełnej implementacji:
+ * - JDBC connector do AS400/Oracle z connection pooling
+ * - FTP client z scheduled polling (CRON job co 15 min)
+ * - UI scraping z Selenium/Puppeteer jako last resort
+ * - Schema validation i data transformation
+ * - Audit logging wszystkich operacji magazynowych
  *
  * Dlaczego adapter:
  * - Inne systemy myślą że to normalne API
  * - Można zmienić sposób połączenia nie ruszając reszty kodu
  * - Jedno miejsce obsługi błędów dla magazynu
+ * - Centralne monitoring dostępności legacy systemu
  */
 
 import { Injectable } from "@nestjs/common";

@@ -1,18 +1,35 @@
 /*
- * ADAPTER SYSTEMU CRM - ESB Integration
+ * ADAPTER SYSTEMU CRM - REST Integration & Customer Segmentation
  *
  * Problem do rozwiązania:
- * Mamy CRM do zarządzania klientami, ale inne systemy też potrzebują danych klientów.
- * Gdy ktoś złoży zamówienie - musimy dodać go do CRM jako potencjalnego klienta.
+ * Mamy CRM do zarządzania klientami z REST API, ale potrzebujemy integracji z ESB.
+ * Gdy ktoś złoży zamówienie - automatycznie aktualizujemy profil i uruchamiamy kampanie.
+ *
+ * Strategia integracji (jak w docs.md):
+ * - Aktualizacja profilu klienta przez REST API
+ * - Segmentacja klienta na podstawie wartości zamówienia
+ * - Trigger kampanii marketingowych (potwierdzenie + cross-sell)
+ * - Real-time events dla behaviour tracking
  *
  * Jak to rozwiązujemy:
- * Adapter synchronizuje dane klientów między ESB a CRM.
- * Automatycznie tworzy profile klientów, aktualizuje statusy, dodaje tagi.
+ * - REST client z circuit breaker i rate limiting
+ * - Connection pooling dla wydajności
+ * - Retry logic z exponential backoff
+ * - Data validation i error handling
+ *
+ * W pełnej implementacji:
+ * - OAuth2 authentication z token refresh
+ * - Webhook handling dla CRM events
+ * - Customer journey tracking
+ * - Automated marketing campaigns
+ * - GDPR compliance dla customer data
+ * - Real-time segmentation engine
  *
  * Dlaczego adapter:
  * - CRM może mieć skomplikowane API z wieloma polami
  * - Upraszczamy to do podstawowych operacji dla ESB
- * - Można dodać logikę biznesową (np. automatyczne tagi)
+ * - Centralne miejsce logiki segmentacji klientów
+ * - Isolacja od zmian w CRM API
  */
 
 import { Injectable } from "@nestjs/common";

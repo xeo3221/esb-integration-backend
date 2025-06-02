@@ -22,9 +22,9 @@
  * - Data transformation i walidacja
  */
 
-import { Process, Processor } from "@nestjs/bull";
-import { Logger } from "@nestjs/common";
-import { Job } from "bull";
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Injectable, Logger } from "@nestjs/common";
+import { Job } from "bullmq";
 import { QUEUE_NAMES } from "../queue.constants";
 
 export interface WarehouseSyncJobData {
@@ -33,45 +33,73 @@ export interface WarehouseSyncJobData {
   data: any;
 }
 
+@Injectable()
 @Processor(QUEUE_NAMES.WAREHOUSE_SYNC)
-export class WarehouseProcessor {
+export class WarehouseProcessor extends WorkerHost {
   private readonly logger = new Logger(WarehouseProcessor.name);
 
-  @Process("stock_update")
-  async handleStockUpdate(job: Job<WarehouseSyncJobData>) {
-    this.logger.log(`Przetwarzam aktualizację magazynu: ${job.data.productId}`);
+  async process(job: Job<WarehouseSyncJobData>): Promise<any> {
+    this.logger.log(
+      `Przetwarzam zadanie warehouse: ${job.id}, akcja: ${job.data.action}`
+    );
 
     try {
-      // W prawdziwej implementacji:
-      // - Połączenie z systemem magazynowym (FTP/CSV/baza)
-      // - Walidacja danych produktu
-      // - Aktualizacja stanu w magazynie
-      // - Powiadomienie innych systemów o zmianie
-
-      this.logger.log(
-        `Aktualizacja magazynu zakończona: ${job.data.productId}`
-      );
-      return { success: true, productId: job.data.productId };
+      switch (job.data.action) {
+        case "stock_update":
+          return await this.handleStockUpdate(job);
+        case "inventory_check":
+          return await this.handleInventoryCheck(job);
+        case "stock_alert":
+          return await this.handleStockAlert(job);
+        default:
+          throw new Error(`Nieznana akcja: ${job.data.action}`);
+      }
     } catch (error) {
-      this.logger.error(
-        `Błąd aktualizacji magazynu: ${job.data.productId}`,
-        error
-      );
-      throw error; // BullMQ automatycznie ponowi zadanie
+      this.logger.error(`Błąd przetwarzania warehouse job ${job.id}:`, error);
+      throw error;
     }
   }
 
-  @Process("inventory_check")
-  async handleInventoryCheck(job: Job<WarehouseSyncJobData>) {
-    this.logger.log(`Sprawdzam stan magazynu: ${job.data.productId}`);
+  private async handleStockUpdate(job: Job<WarehouseSyncJobData>) {
+    this.logger.log(`Aktualizacja magazynu: ${job.data.productId}`);
 
-    // Symulacja sprawdzenia stanu (w rzeczywistości zapytanie do bazy/CSV)
+    // Symulacja aktualizacji stanu magazynu
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    return {
+      success: true,
+      productId: job.data.productId,
+      action: "stock_update",
+      processedAt: new Date(),
+    };
+  }
+
+  private async handleInventoryCheck(job: Job<WarehouseSyncJobData>) {
+    this.logger.log(`Sprawdzanie stanu: ${job.data.productId}`);
+
+    // Symulacja sprawdzenia magazynu
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return {
       success: true,
       productId: job.data.productId,
+      action: "inventory_check",
       stockLevel: Math.floor(Math.random() * 100),
+      processedAt: new Date(),
+    };
+  }
+
+  private async handleStockAlert(job: Job<WarehouseSyncJobData>) {
+    this.logger.log(`Alert magazynowy: ${job.data.productId}`);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return {
+      success: true,
+      productId: job.data.productId,
+      action: "stock_alert",
+      alertSent: true,
+      processedAt: new Date(),
     };
   }
 }

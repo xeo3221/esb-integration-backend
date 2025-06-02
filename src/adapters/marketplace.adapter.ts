@@ -1,20 +1,40 @@
 /*
- * ADAPTER PLATFORMY MARKETPLACE - ESB Integration
+ * ADAPTER PLATFORMY MARKETPLACE - REST API + Webhooks Integration
  *
  * Problem do rozwiązania:
- * Sprzedajemy na platformie (Allegro/Amazon), musimy synchronizować:
- * - Stany magazynowe (ile pokazać na platformie)
- * - Nowe zamówienia (automatycznie je pobierać)
- * - Ceny produktów
+ * Sprzedajemy na platformie marketplace (Allegro/Amazon/własna), musimy synchronizować:
+ * - Stany magazynowe w czasie rzeczywistym
+ * - Nowe zamówienia z webhook notifications
+ * - Potwierdzenia zamówień i tracking info
+ * - Ceny i dostępność produktów
+ *
+ * Strategia integracji (jak w docs.md):
+ * - REST API dla aktywnych operacji (aktualizacja statusu, sync)
+ * - Webhooks dla real-time order notifications
+ * - Batch sync dla inventory updates
+ * - Event streaming dla order state management
  *
  * Jak to rozwiązujemy:
- * Adapter łączy się z API platformy i synchronizuje dane w obie strony.
- * ESB wysyła aktualne stany → Platforma pobiera zamówienia.
+ * - REST client z authentication i rate limiting
+ * - Webhook verification i security
+ * - Circuit breaker protection
+ * - Bulk operations dla wydajności
+ * - Order state machine tracking
+ *
+ * W pełnej implementacji:
+ * - Multi-platform support (różne marketplace APIs)
+ * - Real-time inventory sync z Redis cache
+ * - Webhook signature verification
+ * - Order fulfillment automation
+ * - Shipping API integration
+ * - Return/refund handling
+ * - Performance monitoring i SLA tracking
  *
  * Dlaczego adapter:
  * - Każda platforma ma inne API (Allegro ≠ Amazon)
- * - Duża ilość danych - potrzeba optymalizacji
- * - Real-time synchronizacja stanów
+ * - High volume data - potrzeba optymalizacji
+ * - Real-time sync requirements
+ * - Isolacja od zmian w marketplace APIs
  */
 
 import { Injectable } from "@nestjs/common";

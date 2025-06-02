@@ -13,6 +13,13 @@
  */
 
 import { Controller, Post, Get, Body, Param } from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+} from "@nestjs/swagger";
 import { OrderProcessingService } from "./order-processing.service";
 import {
   OrderRequest,
@@ -20,6 +27,7 @@ import {
   OrderDetailResponse,
 } from "./order.interfaces";
 
+@ApiTags("orders")
 @Controller("orders")
 export class OrdersController {
   constructor(
@@ -27,6 +35,18 @@ export class OrdersController {
   ) {}
 
   @Post()
+  @ApiOperation({
+    summary: "Utwórz nowe zamówienie",
+    description:
+      "Rozpoczyna przetwarzanie zamówienia przez wszystkie systemy ESB: magazyn → faktury → CRM → marketplace",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Zamówienie utworzone i przekazane do przetwarzania",
+  })
+  @ApiBody({
+    description: "Dane zamówienia z informacjami o kliencie i produktach",
+  })
   async createOrder(
     @Body() orderRequest: OrderRequest
   ): Promise<OrderResponse> {
@@ -34,6 +54,20 @@ export class OrdersController {
   }
 
   @Get(":orderId")
+  @ApiOperation({
+    summary: "Pobierz szczegóły zamówienia",
+    description:
+      "Zwraca pełne informacje o zamówieniu wraz z produktami, klientem i statusem każdego kroku ESB",
+  })
+  @ApiParam({
+    name: "orderId",
+    description: "Unikalny identyfikator zamówienia",
+    example: "order-1234567890",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Szczegółowe informacje o zamówieniu",
+  })
   getOrderDetails(
     @Param("orderId") orderId: string
   ): OrderDetailResponse | undefined {
@@ -41,12 +75,30 @@ export class OrdersController {
   }
 
   @Get()
+  @ApiOperation({
+    summary: "Lista wszystkich zamówień",
+    description:
+      "Zwraca listę wszystkich zamówień w systemie (dla development/debugging)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Lista zamówień z podstawowymi informacjami",
+  })
   getAllOrders(): OrderResponse[] {
     return this.orderProcessingService.getAllOrders();
   }
 
   // Demo endpoint - przykładowe zamówienie
   @Post("demo")
+  @ApiOperation({
+    summary: "Utwórz demo zamówienie",
+    description:
+      "Tworzy przykładowe zamówienie (Laptop + Mysz) do testowania przepływu ESB",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Demo zamówienie utworzone",
+  })
   async createDemoOrder(): Promise<OrderResponse> {
     const demoOrder: OrderRequest = {
       customerId: "demo-customer-123",

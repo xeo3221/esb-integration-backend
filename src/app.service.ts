@@ -39,9 +39,10 @@ export class AppService {
   /**
    * Test połączenia z bazą danych
    * W pełnej implementacji:
-   * - Więcej szczegółowych testów
-   * - Sprawdzanie stanu połączenia
-   * - Metryki wydajności
+   * - Więcej szczegółowych testów (connection pool, query performance)
+   * - External adapters health checks
+   * - Queue system availability
+   * - Circuit breaker status monitoring
    */
   async testDatabaseConnection(): Promise<{
     connected: boolean;
